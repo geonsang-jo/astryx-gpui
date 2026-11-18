@@ -15,6 +15,7 @@ struct Form {
     commits: usize,
     dark: bool,
     focus_input_on_select: bool,
+    disabled_override: Option<bool>,
 }
 
 impl Render for Form {
@@ -35,8 +36,22 @@ impl Render for Form {
             .p(px(10.))
             .w(px(400.))
             .h(px(400.))
-            .child(Input::new(&self.input).theme(theme).label("Project"))
-            .child(TextArea::new(&self.area).theme(theme).label("Description"))
+            .child({
+                let input = Input::new(&self.input).theme(theme).label("Project");
+                if let Some(disabled) = self.disabled_override {
+                    input.disabled(disabled)
+                } else {
+                    input
+                }
+            })
+            .child({
+                let area = TextArea::new(&self.area).theme(theme).label("Description");
+                if let Some(disabled) = self.disabled_override {
+                    area.disabled(disabled)
+                } else {
+                    area
+                }
+            })
             .child(
                 Select::new("program")
                     .theme(theme)
@@ -88,6 +103,7 @@ fn mount(cx: &mut TestAppContext, disabled: bool) -> (Entity<Form>, &mut VisualT
         commits: 0,
         dark: false,
         focus_input_on_select: false,
+        disabled_override: None,
     });
     cx.update(|window, cx| window.draw(cx).clear(cx));
     (view, cx)
@@ -256,4 +272,86 @@ fn select_external_close_restores_trigger_and_disable_clears_popup_focus(cx: &mu
         !cx.update(|w, _| popup_focus.is_focused(w)),
         "disabledpopupmustnotownfocus"
     );
+}
+
+#[gpui::test]
+fn select_uses_host_supplied_trigger_and_content_focus_identities(cx: &mut TestAppContext) {
+    struct Host {
+        trigger: gpui::FocusHandle,
+        content: gpui::FocusHandle,
+        open: bool,
+    }
+    impl Render for Host {
+        fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+            let owner = cx.entity().downgrade();
+            Select::new("host-select")
+                .focus_handle(&self.trigger)
+                .content_focus_handle(&self.content)
+                .items(vec![SelectOption::new("a", "Alpha")])
+                .selected("a")
+                .open(self.open)
+                .on_open_change(move |open, _, cx| {
+                    let _ = owner.update(cx, |s, cx| {
+                        s.open = open;
+                        cx.notify();
+                    });
+                })
+        }
+    }
+    cx.update(astryx_gpui::init);
+    let (view, cx) = cx.add_window_view(|_, cx| Host {
+        trigger: cx.focus_handle(),
+        content: cx.focus_handle(),
+        open: false,
+    });
+    cx.update(|w, cx| w.draw(cx).clear(cx));
+    let (trigger, content) = view.read_with(cx, |s, _| (s.trigger.clone(), s.content.clone()));
+    cx.update(|w, cx| trigger.focus(w, cx));
+    key(cx, "enter");
+    assert!(cx.update(|w, _| content.is_focused(w)));
+    key(cx, "escape");
+    assert!(cx.update(|w, _| trigger.is_focused(w)));
+}
+
+#[gpui::test]
+fn view_disabled_override_preserves_values_and_omitted_override_keeps_owner_policy(
+    cx: &mut TestAppContext,
+) {
+    let (view, cx) = mount(cx, false);
+    let (input, area) = view.read_with(cx, |s, _| (s.input.clone(), s.area.clone()));
+    cx.update(|w, cx| {
+        input.update(cx, |s, cx| {
+            s.set_value("input", w, cx);
+            s.set_disabled(true, cx);
+        });
+        area.update(cx, |s, cx| {
+            s.set_value("area", w, cx);
+            s.set_disabled(true, cx);
+        });
+        w.draw(cx).clear(cx);
+    });
+    assert!(input.read_with(cx, |s, _| s.presentation().is_disabled()));
+    assert!(area.read_with(cx, |s, _| s.presentation().is_disabled()));
+    view.update(cx, |s, cx| {
+        s.disabled_override = Some(false);
+        cx.notify();
+    });
+    cx.update(|w, cx| w.draw(cx).clear(cx));
+    assert!(!input.read_with(cx, |s, _| s.presentation().is_disabled()));
+    assert!(!area.read_with(cx, |s, _| s.presentation().is_disabled()));
+    cx.update(|w, cx| input.update(cx, |s, cx| s.focus(w, cx)));
+    cx.simulate_input("+");
+    view.update(cx, |s, cx| {
+        s.disabled_override = Some(true);
+        cx.notify();
+    });
+    cx.update(|w, cx| w.draw(cx).clear(cx));
+    cx.simulate_input("blocked");
+    assert_eq!(input.read_with(cx, |s, _| s.value().to_string()), "input+");
+    assert_eq!(area.read_with(cx, |s, _| s.value().to_string()), "area");
+    assert!(area.read_with(cx, |s, _| s.presentation().is_disabled()));
+    // Rendering the same controlled policy repeatedly must remain stable.
+    for _ in 0..3 {
+        cx.update(|w, cx| w.draw(cx).clear(cx));
+    }
 }

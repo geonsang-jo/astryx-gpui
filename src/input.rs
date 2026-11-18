@@ -18,6 +18,7 @@ pub struct Input {
     state: Entity<InputState>,
     theme: Theme,
     invalid: bool,
+    disabled: Option<bool>,
     label: Option<SharedString>,
     style: StyleRefinement,
 }
@@ -32,6 +33,7 @@ pub struct TextArea {
     state: Entity<TextareaState>,
     theme: Theme,
     invalid: bool,
+    disabled: Option<bool>,
     label: Option<SharedString>,
     style: StyleRefinement,
 }
@@ -45,6 +47,7 @@ macro_rules! presentation {
                     state: state.clone(),
                     theme: Theme::light(),
                     invalid: false,
+                    disabled: None,
                     label: None,
                     style: StyleRefinement::default(),
                 }
@@ -63,6 +66,13 @@ macro_rules! presentation {
                 self.invalid = invalid;
                 self
             }
+            /// Overrides the native state's disabled flag. When omitted, the
+            /// caller's state remains authoritative. This does not replace its
+            /// text, composition, selection, or undo history.
+            pub fn disabled(mut self, disabled: bool) -> Self {
+                self.disabled = Some(disabled);
+                self
+            }
             pub fn label(mut self, label: impl Into<SharedString>) -> Self {
                 self.label = Some(label.into());
                 self
@@ -78,7 +88,12 @@ macro_rules! presentation {
         impl RenderOnce for $name {
             fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
                 let c = self.theme.colors;
-                self.state.update(cx, |state, _| {
+                self.state.update(cx, |state, cx| {
+                    if let Some(disabled) = self.disabled
+                        && state.presentation().is_disabled() != disabled
+                    {
+                        state.set_disabled(disabled, cx);
+                    }
                     state.set_editor_style(gpui_base::input::InputEditorStyle {
                         foreground: c.text,
                         muted_foreground: c.faint,
