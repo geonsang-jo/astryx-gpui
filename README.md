@@ -6,7 +6,7 @@ An **unofficial community port** of [Meta's Astryx](https://github.com/meta/astr
 
 [Dark gallery](docs/assets/gallery-dark.png) · [Pinned source map](docs/source-map.md)
 
-## First slice
+## Native coverage
 
 | Component | Available behavior |
 | --- | --- |
@@ -19,8 +19,29 @@ An **unofficial community port** of [Meta's Astryx](https://github.com/meta/astr
 | Checkbox | Caller-owned checked state and change callback |
 | Tabs | Caller-owned selection; roving focus; Left/Right/Home/End; disabled items |
 | Collapsible | Caller-owned open state; pointer and keyboard trigger |
+| Input / TextArea | Caller-owned native editing state; selection, history, Korean text and read-only/disabled behavior |
+| Select | Controlled value/open/highlight; native anchored popup; disabled skipping; confirmation and focus restoration |
+| Dialog | Controlled modal; focus trap/restore; Escape/backdrop veto; child buttons retain their own Enter action |
+| Popover / Tooltip | Native anchored/hover lifecycles with Neutral surfaces |
+| Switch | Controlled binary value; native pointer/keyboard and disabled behavior |
+| Banner / EmptyState | Composable status and empty-result content |
+| ProgressBar / StatusDot | Numeric native progress semantics and labelled status |
+| Skeleton / Kbd | Loading placeholder and shortcut presentation |
 
-This is an initial useful subset, not the full Astryx kit. Input, Select, Dialog and Popover are the next phase. No application integration is included.
+Porting the full source catalogue is ongoing. [The coverage inventory](docs/coverage.md)
+tracks all 102 public UI families separately from 11 supporting exports; pending
+families are not public stubs. Native counterparts adapt platform behavior rather
+than claiming React API compatibility. The library remains independent of its hosts.
+
+The forms/layers gallery demonstrates the additional controls:
+
+```sh
+cargo run --locked --example controls
+cargo run --locked --example controls -- --dark
+cargo run --locked --example controls -- --dialog --snapshot artifacts/dialog.png
+```
+
+![Native controls](docs/assets/controls-light.png)
 
 ## Run the native gallery
 

@@ -9,7 +9,7 @@ use gpui_base::StyledExt as _;
 
 use crate::Theme;
 
-type SelectHandler = Rc<dyn Fn(SharedString, &mut Window, &mut App)>;
+type SelectHandler = Rc<dyn Fn(SharedString, bool, &mut Window, &mut App)>;
 
 /// One uniquely keyed tab in a controlled tab list.
 #[derive(Clone, Debug)]
@@ -85,6 +85,19 @@ impl Tabs {
         mut self,
         handler: impl Fn(SharedString, &mut Window, &mut App) + 'static,
     ) -> Self {
+        self.on_select = Some(Rc::new(move |value, _, window, cx| {
+            handler(value, window, cx)
+        }));
+        self
+    }
+
+    /// Reports whether the selected tab owns native focus at activation time.
+    /// Hosts can use this to preserve a keyboard-focused tab strip or return
+    /// focus to their working content after a pointer-driven selection.
+    pub fn on_select_with_focus(
+        mut self,
+        handler: impl Fn(SharedString, bool, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_select = Some(Rc::new(handler));
         self
     }
@@ -156,6 +169,7 @@ impl RenderOnce for Tabs {
                 let selected = Some(index) == active;
                 let keyboard_items = items.clone();
                 let keyboard_handles = handles.clone();
+                let click_handle = handles[index].clone();
                 gpui_base::Button::new((self.id.clone(), item.key.clone()))
                     .role(Role::Tab)
                     .accessibility_label(item.label.clone())
@@ -180,7 +194,10 @@ impl RenderOnce for Tabs {
                     .focus_visible(move |style| style.bg(c.neutral))
                     .styles(|styles| styles.disabled(|style| style.opacity(0.5)))
                     .when_some(callback, |button, callback| {
-                        button.on_click(move |_, window, cx| callback(key.clone(), window, cx))
+                        button.on_click(move |_, window, cx| {
+                            let focused = click_handle.is_focused(window);
+                            callback(key.clone(), focused, window, cx)
+                        })
                     })
                     .on_key_down(move |event, window, cx| {
                         if event.keystroke.modifiers != gpui::Modifiers::default() {
@@ -192,7 +209,8 @@ impl RenderOnce for Tabs {
                             cx.stop_propagation();
                             keyboard_handles[next].focus(window, cx);
                             if let Some(callback) = &keyboard_callback {
-                                callback(keyboard_items[next].key.clone(), window, cx);
+                                let focused = keyboard_handles[next].is_focused(window);
+                                callback(keyboard_items[next].key.clone(), focused, window, cx);
                             }
                         }
                     })

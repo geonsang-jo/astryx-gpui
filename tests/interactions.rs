@@ -1,4 +1,4 @@
-use astryx_gpui::{Button, Checkbox, Collapsible, Tab, Tabs};
+use astryx_gpui::{Button, Checkbox, Collapsible, Switch, Tab, Tabs};
 use gpui::{
     Context, Entity, InteractiveElement, IntoElement, KeyDownEvent, KeyUpEvent, Keystroke,
     Modifiers, ParentElement, Render, StatefulInteractiveElement, Styled, TestAppContext,
@@ -10,20 +10,24 @@ use std::{cell::Cell, rc::Rc};
 #[derive(Clone, Copy)]
 enum Kind {
     Button,
+    IconButton,
     Checkbox,
     Tabs,
     Collapsible,
+    Switch,
 }
 
 struct Harness {
     kind: Kind,
     disabled: bool,
     clicks: usize,
+    button_focus: gpui::FocusHandle,
     parent_clicks: usize,
     checked: bool,
     changes: Vec<bool>,
     selected: gpui::SharedString,
     selections: Vec<gpui::SharedString>,
+    focused_selections: Vec<bool>,
     open: bool,
     content_layouts: Rc<Cell<usize>>,
 }
@@ -33,8 +37,20 @@ impl Render for Harness {
         let owner = cx.entity().downgrade();
         let control = match self.kind {
             Kind::Button => Button::new("button", "Activate")
+                .focus_handle(&self.button_focus)
                 .disabled(self.disabled)
                 .w(px(140.))
+                .on_click(cx.listener(|this, _, _, cx| {
+                    this.clicks += 1;
+                    cx.notify();
+                }))
+                .into_any_element(),
+            Kind::IconButton => Button::new("icon-button", "")
+                .accessibility_label("Activate")
+                .leading(div().size(px(14.)).child("✦"))
+                .trailing(div().size(px(14.)).child("→"))
+                .disabled(self.disabled)
+                .w(px(80.))
                 .on_click(cx.listener(|this, _, _, cx| {
                     this.clicks += 1;
                     cx.notify();
@@ -59,10 +75,22 @@ impl Render for Harness {
                     Tab::new("c", "Gamma"),
                 ])
                 .selected(self.selected.clone())
-                .on_select(move |selected, _, cx| {
+                .on_select_with_focus(move |selected, focused, _, cx| {
                     let _ = owner.update(cx, |this, cx| {
                         this.selected = selected.clone();
                         this.selections.push(selected);
+                        this.focused_selections.push(focused);
+                        cx.notify();
+                    });
+                })
+                .into_any_element(),
+            Kind::Switch => Switch::new("switch", "Notifications")
+                .checked(self.checked)
+                .disabled(self.disabled)
+                .on_change(move |checked, _, cx| {
+                    let _ = owner.update(cx, |this, cx| {
+                        this.checked = checked;
+                        this.changes.push(checked);
                         cx.notify();
                     });
                 })
@@ -106,15 +134,17 @@ fn mount(
     disabled: bool,
 ) -> (Entity<Harness>, &mut VisualTestContext) {
     cx.update(astryx_gpui::init);
-    let (view, cx) = cx.add_window_view(move |_, _| Harness {
+    let (view, cx) = cx.add_window_view(move |_, cx| Harness {
         kind,
         disabled,
         clicks: 0,
+        button_focus: cx.focus_handle(),
         parent_clicks: 0,
         checked: false,
         changes: Vec::new(),
         selected: "a".into(),
         selections: Vec::new(),
+        focused_selections: Vec::new(),
         open: false,
         content_layouts: Rc::new(Cell::new(0)),
     });
@@ -152,6 +182,41 @@ fn disabled_button_blocks_activation_and_has_no_tab_stop(cx: &mut TestAppContext
     assert_eq!(view.read_with(cx, |view, _| view.clicks), 0);
     assert_eq!(view.read_with(cx, |view, _| view.parent_clicks), 0);
     cx.update(|window, cx| assert!(window.focused(cx).is_none()));
+}
+
+#[gpui::test]
+fn icon_children_share_button_activation_and_disabled_semantics(cx: &mut TestAppContext) {
+    let (view, cx) = mount(cx, Kind::IconButton, false);
+    cx.simulate_click(point(px(16.), px(10.)), Modifiers::default());
+    key(cx, "enter");
+    assert_eq!(view.read_with(cx, |view, _| view.clicks), 2);
+    view.update(cx, |view, cx| {
+        view.disabled = true;
+        cx.notify();
+    });
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    cx.simulate_click(point(px(16.), px(10.)), Modifiers::default());
+    key(cx, "space");
+    assert_eq!(view.read_with(cx, |view, _| view.clicks), 2);
+}
+
+#[gpui::test]
+fn switch_reports_controlled_activation_and_suppresses_disabled_changes(cx: &mut TestAppContext) {
+    let (view, cx) = mount(cx, Kind::Switch, false);
+    cx.simulate_click(point(px(10.), px(10.)), Modifiers::default());
+    key(cx, "space");
+    assert_eq!(
+        view.read_with(cx, |view, _| view.changes.clone()),
+        vec![true, false]
+    );
+    view.update(cx, |view, cx| {
+        view.disabled = true;
+        cx.notify();
+    });
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    cx.simulate_click(point(px(10.), px(10.)), Modifiers::default());
+    key(cx, "enter");
+    assert_eq!(view.read_with(cx, |view, _| view.changes.len()), 2);
 }
 
 #[gpui::test]
@@ -199,6 +264,9 @@ fn tabs_use_roving_arrows_home_and_end_while_skipping_disabled(cx: &mut TestAppC
     key(cx, "enter");
     key(cx, "space");
     assert_eq!(view.read_with(cx, |view, _| view.selections.len()), 6);
+    assert!(view.read_with(cx, |view, _| {
+        view.focused_selections.iter().all(|focused| *focused)
+    }));
 }
 
 #[gpui::test]

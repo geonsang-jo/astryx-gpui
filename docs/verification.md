@@ -72,3 +72,23 @@ full upstream Astryx behavior remain unverified. Text heading styling has no
 semantic heading role. Tabs do not implement panel relationships or overflow;
 the host composes their content. The remaining controls are listed in the
 README roadmap.
+
+## Expanded controls batch
+
+On 2026-11-18, the first expanded batch passed formatting, clippy with warnings
+denied, all examples, and24tests (5unit +19nativeinteraction tests). New checks
+cover Korean editing-state retention, multiline text, disabled/read-only input,
+Select enabled-option navigation/single confirmation/Escape/focus and consumer
+focus overrides, modal hidden-content layout, dismissal veto/focus restoration
+and focused child-button Enter handling. Switch and icon-child button activation
+are also covered, including caller-owned Button focus and tab focus reporting.
+
+Independent forms/layers cross-review found the dialog default-Enter conflict;
+the modal now confirms only from its own exact focus target and lets a focused
+child control own Enter. The native regression exercises both paths.
+
+Real offscreen Metal images for the new forms/layers gallery:
+[Light](assets/controls-light.png), [Dark](assets/controls-dark.png),
+[Open dialog](assets/controls-dialog.png). Editing and popup tests dispatch native
+events; no business/provider/OS-file operation starts in these synthetic examples.
+The full102-family port remains in progress, as recorded in coverage.md.

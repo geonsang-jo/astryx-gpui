@@ -1,7 +1,7 @@
 use gpui::{
-    App, ClickEvent, ElementId, FontWeight, Hsla, InteractiveElement, IntoElement, ParentElement,
-    RenderOnce, Rgba, SharedString, StatefulInteractiveElement, StyleRefinement, Styled, Window,
-    prelude::FluentBuilder as _, px,
+    AnyElement, AnyView, App, ClickEvent, ElementId, FocusHandle, FontWeight, Hsla,
+    InteractiveElement, IntoElement, ParentElement, RenderOnce, Rgba, SharedString,
+    StatefulInteractiveElement, StyleRefinement, Styled, Window, prelude::FluentBuilder as _, px,
 };
 use gpui_base::StyledExt as _;
 
@@ -27,6 +27,8 @@ pub struct Button {
     size: ControlSize,
     selected: bool,
     disabled: bool,
+    leading: Option<AnyElement>,
+    trailing: Option<AnyElement>,
     style: StyleRefinement,
 }
 
@@ -41,6 +43,8 @@ impl Button {
             size: ControlSize::Medium,
             selected: false,
             disabled: false,
+            leading: None,
+            trailing: None,
             style: StyleRefinement::default(),
         }
     }
@@ -69,6 +73,36 @@ impl Button {
     pub fn selected(mut self, selected: bool) -> Self {
         self.selected = selected;
         self.base = self.base.selected(selected);
+        self
+    }
+
+    /// Overrides the accessible name, for example when the visible label is empty.
+    pub fn accessibility_label(mut self, label: impl Into<SharedString>) -> Self {
+        self.base = self.base.accessibility_label(label);
+        self
+    }
+
+    /// Uses a caller-owned focus target instead of keyed internal button focus.
+    pub fn focus_handle(mut self, handle: &FocusHandle) -> Self {
+        self.base = self.base.track_focus(handle);
+        self
+    }
+
+    /// Adds caller-supplied native content before the label (for example an icon).
+    pub fn leading(mut self, content: impl IntoElement) -> Self {
+        self.leading = Some(content.into_any_element());
+        self
+    }
+
+    /// Adds caller-supplied native content after the label.
+    pub fn trailing(mut self, content: impl IntoElement) -> Self {
+        self.trailing = Some(content.into_any_element());
+        self
+    }
+
+    /// Uses GPUI's native tooltip lifecycle with caller-supplied content.
+    pub fn tooltip(mut self, builder: impl Fn(&mut Window, &mut App) -> AnyView + 'static) -> Self {
+        self.base = self.base.tooltip(builder);
         self
     }
 
@@ -165,7 +199,9 @@ impl RenderOnce for Button {
                     .border_2()
             })
             .styles(|styles| styles.disabled(|style| style.opacity(0.5)))
-            .child(self.label)
+            .children(self.leading)
+            .when(!self.label.is_empty(), |button| button.child(self.label))
+            .children(self.trailing)
             .refine_style(&self.style)
     }
 }
