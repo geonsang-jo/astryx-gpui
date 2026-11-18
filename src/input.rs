@@ -1,6 +1,6 @@
 use gpui::{
-    App, Entity, Focusable as _, InteractiveElement as _, IntoElement, ParentElement, RenderOnce,
-    SharedString, StyleRefinement, Styled, Window, prelude::FluentBuilder as _, px,
+    App, ElementId, Entity, Focusable as _, InteractiveElement as _, IntoElement, ParentElement,
+    RenderOnce, SharedString, StyleRefinement, Styled, Window, prelude::FluentBuilder as _, px,
 };
 use gpui_base::{InputBase, StyledExt as _};
 
@@ -14,6 +14,7 @@ pub use gpui_base::input::{InputEvent, InputState, TextareaState};
 /// Rebuilding this wrapper never replaces that state or its composition/history.
 #[derive(IntoElement)]
 pub struct Input {
+    id: Option<ElementId>,
     state: Entity<InputState>,
     theme: Theme,
     invalid: bool,
@@ -27,6 +28,7 @@ pub struct Input {
 /// `TextareaState`. The native editing engine owns IME, selection and history.
 #[derive(IntoElement)]
 pub struct TextArea {
+    id: Option<ElementId>,
     state: Entity<TextareaState>,
     theme: Theme,
     invalid: bool,
@@ -39,6 +41,7 @@ macro_rules! presentation {
         impl $name {
             pub fn new(state: &Entity<$state>) -> Self {
                 Self {
+                    id: None,
                     state: state.clone(),
                     theme: Theme::light(),
                     invalid: false,
@@ -49,6 +52,11 @@ macro_rules! presentation {
 
             pub fn theme(mut self, theme: Theme) -> Self {
                 self.theme = theme;
+                self
+            }
+            /// Uses the host's stable identity for the actual input frame.
+            pub fn id(mut self, id: impl Into<ElementId>) -> Self {
+                self.id = Some(id.into());
                 self
             }
             pub fn invalid(mut self, invalid: bool) -> Self {
@@ -86,41 +94,44 @@ macro_rules! presentation {
                 let disabled = presentation.is_disabled();
                 let focused = state.focus_handle(cx).is_focused(window);
                 let handle = presentation.focus_handle().clone();
-                InputBase::new(("astryx-input", self.state.entity_id()))
-                    .w_full()
-                    .min_w(px(0.))
-                    .h(px($height))
-                    .px(px(12.))
-                    .rounded(px(10.))
-                    .border_1()
-                    .border_color(if self.invalid {
-                        c.danger
-                    } else {
-                        c.border_emphasized
-                    })
-                    .bg(c.surface)
-                    .text_color(c.text)
-                    .text_size(px(14.))
-                    .line_height(px(20.))
-                    .focused(focused)
-                    .disabled(disabled)
-                    .when(!disabled, |frame| {
-                        frame
-                            .cursor_text()
-                            .on_mouse_down(gpui::MouseButton::Left, move |_, window, cx| {
-                                handle.focus(window, cx)
-                            })
-                    })
-                    .styles(|styles| {
-                        styles
-                            .focused(|style| {
-                                style.border_color(if self.invalid { c.danger } else { c.focus })
-                            })
-                            .disabled(|style| style.opacity(0.5))
-                    })
-                    .when_some(self.label, |frame, label| frame.accessibility_label(label))
-                    .child(<$native>::new(&self.state))
-                    .refine_style(&self.style)
+                InputBase::new(
+                    self.id
+                        .unwrap_or_else(|| ("astryx-input", self.state.entity_id()).into()),
+                )
+                .w_full()
+                .min_w(px(0.))
+                .h(px($height))
+                .px(px(12.))
+                .rounded(px(10.))
+                .border_1()
+                .border_color(if self.invalid {
+                    c.danger
+                } else {
+                    c.border_emphasized
+                })
+                .bg(c.surface)
+                .text_color(c.text)
+                .text_size(px(14.))
+                .line_height(px(20.))
+                .focused(focused)
+                .disabled(disabled)
+                .when(!disabled, |frame| {
+                    frame
+                        .cursor_text()
+                        .on_mouse_down(gpui::MouseButton::Left, move |_, window, cx| {
+                            handle.focus(window, cx)
+                        })
+                })
+                .styles(|styles| {
+                    styles
+                        .focused(|style| {
+                            style.border_color(if self.invalid { c.danger } else { c.focus })
+                        })
+                        .disabled(|style| style.opacity(0.5))
+                })
+                .when_some(self.label, |frame, label| frame.accessibility_label(label))
+                .child(<$native>::new(&self.state))
+                .refine_style(&self.style)
             }
         }
     };

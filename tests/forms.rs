@@ -230,3 +230,30 @@ fn select_confirmation_preserves_consumer_requested_input_focus(cx: &mut TestApp
     );
     assert_eq!(view.read_with(cx, |this, _| this.commits), 1);
 }
+
+#[gpui::test]
+fn select_external_close_restores_trigger_and_disable_clears_popup_focus(cx: &mut TestAppContext) {
+    let (view, cx) = mount(cx, false);
+    cx.simulate_click(point(px(30.), px(185.)), Modifiers::default());
+    let popup_focus = cx.update(|w, cx| w.focused(cx).expect("openpopupfocus"));
+    view.update(cx, |s, cx| {
+        s.open = false;
+        cx.notify();
+    });
+    cx.update(|w, cx| w.draw(cx).clear(cx));
+    key(cx, "enter");
+    assert!(view.read_with(cx, |s, _| s.open));
+    key(cx, "escape");
+    let input = view.read_with(cx, |s, _| s.input.clone());
+    cx.update(|w, cx| input.update(cx, |s, cx| s.focus(w, cx)));
+    cx.simulate_click(point(px(30.), px(185.)), Modifiers::default());
+    view.update(cx, |s, cx| {
+        s.disabled = true;
+        cx.notify();
+    });
+    cx.update(|w, cx| w.draw(cx).clear(cx));
+    assert!(
+        !cx.update(|w, _| popup_focus.is_focused(w)),
+        "disabledpopupmustnotownfocus"
+    );
+}

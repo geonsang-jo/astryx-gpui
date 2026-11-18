@@ -1,6 +1,6 @@
 use gpui::{
-    AnyElement, App, IntoElement, ParentElement, Refineable as _, RenderOnce, StyleRefinement,
-    Styled, Window, div, px,
+    AnyElement, App, ElementId, InteractiveElement, IntoElement, ParentElement, Refineable as _,
+    RenderOnce, StyleRefinement, Styled, Window, div, px,
 };
 
 use crate::theme::{BODY_LINE_HEIGHT, BODY_SIZE, CARD_PADDING, CARD_RADIUS, Theme};
@@ -8,6 +8,7 @@ use crate::theme::{BODY_LINE_HEIGHT, BODY_SIZE, CARD_PADDING, CARD_RADIUS, Theme
 /// A flat Neutral card. The owner composes its header, content and footer.
 #[derive(IntoElement)]
 pub struct Card {
+    id: Option<ElementId>,
     children: Vec<AnyElement>,
     padding: f32,
     theme: Theme,
@@ -17,6 +18,7 @@ pub struct Card {
 impl Card {
     pub fn new() -> Self {
         Self {
+            id: None,
             children: Vec::new(),
             padding: CARD_PADDING,
             theme: Theme::default(),
@@ -26,6 +28,12 @@ impl Card {
 
     pub fn padding(mut self, padding: f32) -> Self {
         self.padding = padding.max(0.);
+        self
+    }
+
+    /// Sets the actual native frame identity when a host needs to retain it.
+    pub fn id(mut self, id: impl Into<ElementId>) -> Self {
+        self.id = Some(id.into());
         self
     }
 
@@ -69,6 +77,10 @@ impl RenderOnce for Card {
             .text_size(px(BODY_SIZE))
             .line_height(px(BODY_LINE_HEIGHT));
         element.style().refine(&self.style);
-        element.children(self.children)
+        if let Some(id) = self.id {
+            element.id(id).children(self.children).into_any_element()
+        } else {
+            element.children(self.children).into_any_element()
+        }
     }
 }

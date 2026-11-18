@@ -37,6 +37,8 @@ impl SelectOption {
 struct SelectFocus {
     trigger: FocusHandle,
     content: FocusHandle,
+    previous: Option<FocusHandle>,
+    was_open: bool,
 }
 
 /// A controlled single-choice selector with a native anchored popup.
@@ -60,6 +62,8 @@ pub struct Select {
     on_select: Option<ValueHandler>,
     on_open_change: Option<OpenHandler>,
     on_highlight: Option<HighlightHandler>,
+    focus_handle: Option<FocusHandle>,
+    content_focus_handle: Option<FocusHandle>,
 }
 
 impl Select {
@@ -78,6 +82,8 @@ impl Select {
             on_select: None,
             on_open_change: None,
             on_highlight: None,
+            focus_handle: None,
+            content_focus_handle: None,
         }
     }
     pub fn items(mut self, items: Vec<SelectOption>) -> Self {
@@ -110,6 +116,16 @@ impl Select {
     }
     pub fn theme(mut self, theme: Theme) -> Self {
         self.theme = theme;
+        self
+    }
+    /// Keeps a host's existing trigger focus identity across reconstruction.
+    pub fn focus_handle(mut self, handle: &FocusHandle) -> Self {
+        self.focus_handle = Some(handle.clone());
+        self
+    }
+    /// Keeps a host's existing popup/list focus identity.
+    pub fn content_focus_handle(mut self, handle: &FocusHandle) -> Self {
+        self.content_focus_handle = Some(handle.clone());
         self
     }
     pub fn on_select(
@@ -164,13 +180,37 @@ fn destination(items: &[SelectOption], current: Option<usize>, key: &str) -> Opt
 impl RenderOnce for Select {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let c = self.theme.colors;
+        let disabled = self.disabled;
+        let open = self.open && !disabled;
         let focus =
             window.use_keyed_state((self.id.clone(), "select-focus"), cx, |_, cx| SelectFocus {
                 trigger: cx.focus_handle(),
                 content: cx.focus_handle(),
+                previous: None,
+                was_open: false,
             });
-        let trigger_focus = focus.read(cx).trigger.clone();
-        let content_focus = focus.read(cx).content.clone();
+        let trigger_focus = self
+            .focus_handle
+            .unwrap_or_else(|| focus.read(cx).trigger.clone());
+        let content_focus = self
+            .content_focus_handle
+            .unwrap_or_else(|| focus.read(cx).content.clone());
+        focus.update(cx, |state, cx| {
+            if !open && state.was_open && content_focus.contains_focused(window, cx) {
+                if !disabled {
+                    trigger_focus.focus(window, cx);
+                } else if let Some(previous) = state
+                    .previous
+                    .take()
+                    .filter(|h| h != &trigger_focus && h != &content_focus)
+                {
+                    previous.focus(window, cx);
+                } else {
+                    window.blur(cx);
+                }
+            }
+            state.was_open = open;
+        });
         let selected = self
             .items
             .iter()
@@ -189,9 +229,23 @@ impl RenderOnce for Select {
             })
             .or_else(|| self.items.iter().position(|item| !item.disabled));
         let items = Rc::new(self.items);
-        let disabled = self.disabled;
-        let open = self.open && !disabled;
-        let opened = self.on_open_change.clone();
+        let open_state = focus.clone();
+        let captured_content = content_focus.clone();
+        let callback = self.on_open_change.clone();
+        let request_open: OpenHandler = Rc::new(move |open, window, cx| {
+            if open {
+                open_state.update(cx, |state, cx| {
+                    let current = window.focused(cx);
+                    if current.as_ref() != Some(&captured_content) {
+                        state.previous = current;
+                    }
+                });
+            }
+            if let Some(callback) = &callback {
+                callback(open, window, cx);
+            }
+        });
+        let opened = Some(request_open.clone());
         let click_content_focus = content_focus.clone();
         let click_trigger_focus = trigger_focus.clone();
         let trigger = div()
@@ -342,9 +396,7 @@ impl RenderOnce for Select {
             .accessibility_value(title)
             .when_some(self.label, |el, label| el.accessibility_label(label))
             .on_open_change(move |open, window, cx| {
-                if let Some(handler) = &self.on_open_change {
-                    handler(open, window, cx);
-                }
+                request_open(open, window, cx);
             })
             .on_confirm(move |window, cx| {
                 if let Some(handler) = &close {
