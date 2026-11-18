@@ -1,0 +1,25 @@
+[package]
+name = "astryx-gpui"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT"
+description = "Unofficial Astryx-inspired native GPUI components"
+repository = "https://github.com/geonsang-jo/astryx-gpui"
+readme = "README.md"
+publish = false
+
+[dependencies]
+gpui = { package = "gpui-pre", version = "=0.3.8", default-features = false }
+gpui-base = "=0.7.1"
+
+[dev-dependencies]
+anyhow = "1"
+gpui = { package = "gpui-pre", version = "=0.3.8", default-features = false, features = ["test-support"] }
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.8", features = ["font-kit", "runtime_shaders", "test-support"] }
+
+[profile.dev]
+debug = 0
+
+[profile.test]
+debug = 0
