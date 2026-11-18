@@ -17,6 +17,7 @@ pub struct Tab {
     pub key: SharedString,
     pub label: SharedString,
     pub disabled: bool,
+    pub icon_svg: Option<SharedString>,
 }
 
 impl Tab {
@@ -25,11 +26,18 @@ impl Tab {
             key: key.into(),
             label: label.into(),
             disabled: false,
+            icon_svg: None,
         }
     }
 
     pub fn disabled(mut self, disabled: bool) -> Self {
         self.disabled = disabled;
+        self
+    }
+
+    /// Uses caller-supplied inline SVG; the library bundles no icon collection.
+    pub fn icon_svg(mut self, data: impl Into<SharedString>) -> Self {
+        self.icon_svg = Some(data.into());
         self
     }
 }
@@ -177,6 +185,10 @@ impl RenderOnce for Tabs {
                     .track_focus(&handles[index])
                     .tab_stop(selected)
                     .disabled(item.disabled)
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .gap(px(8.))
                     .h(px(36.))
                     .px(px(12.))
                     .text_size(px(14.))
@@ -213,6 +225,9 @@ impl RenderOnce for Tabs {
                                 callback(keyboard_items[next].key.clone(), focused, window, cx);
                             }
                         }
+                    })
+                    .when_some(item.icon_svg.clone(), |button, icon| {
+                        button.child(gpui::svg().data(icon.as_bytes()).size(px(14.)).flex_none())
                     })
                     .child(item.label.clone())
             })

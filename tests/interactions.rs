@@ -70,7 +70,7 @@ impl Render for Harness {
                 .into_any_element(),
             Kind::Tabs => Tabs::new("tabs")
                 .items(vec![
-                    Tab::new("a", "Alpha"),
+                    Tab::new("a", "Alpha").icon_svg("<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14'><circle cx='7' cy='7' r='4'/></svg>"),
                     Tab::new("b", "Beta").disabled(true),
                     Tab::new("c", "Gamma"),
                 ])
