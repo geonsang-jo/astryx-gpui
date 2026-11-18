@@ -61,7 +61,12 @@ style refinement order, public dependency boundaries, source provenance and
 license notices. The final public inventory contains only library source,
 synthetic examples/tests/screenshots, dependency lock data and documentation.
 
-CI is configured to run the same checks on macOS. Windows/Linux compilation,
+The initial public [macOS CI run](https://github.com/geonsang-jo/astryx-gpui/actions/runs/44260800129)
+also passed formatting, clippy, all 11 tests and example compilation for code
+commit `da450a36740c08120e7a81a022ef95e87c5b8e45`. Later documentation-only
+publication records skip duplicate CI; the library, tests and gallery are unchanged.
+
+Windows/Linux compilation,
 interactive assistive-technology testing, broad visual regression testing and
 full upstream Astryx behavior remain unverified. Text heading styling has no
 semantic heading role. Tabs do not implement panel relationships or overflow;
