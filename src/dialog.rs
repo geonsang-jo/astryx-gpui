@@ -32,6 +32,7 @@ pub struct Dialog {
     title: Option<SharedString>,
     theme: Theme,
     dismissible: bool,
+    initial_focus: Option<FocusHandle>,
     on_open_change: Option<OpenChange>,
     on_cancel: Decision,
     on_confirm: Decision,
@@ -47,6 +48,7 @@ impl Dialog {
             title: None,
             theme: Theme::default(),
             dismissible: true,
+            initial_focus: None,
             on_open_change: None,
             on_cancel: Rc::new(|_, _, _| true),
             on_confirm: Rc::new(|_, _, _| false),
@@ -72,6 +74,13 @@ impl Dialog {
 
     pub fn dismissible(mut self, dismissible: bool) -> Self {
         self.dismissible = dismissible;
+        self
+    }
+
+    /// Focus a control inside the modal when it first opens. Its native element
+    /// must track this handle; ordinary re-renders never steal focus back.
+    pub fn initial_focus(mut self, focus: &FocusHandle) -> Self {
+        self.initial_focus = Some(focus.clone());
         self
     }
 
@@ -125,6 +134,9 @@ impl RenderOnce for Dialog {
                 if self.open {
                     state.previous = window.focused(cx);
                     state.handle.focus(window, cx);
+                    if let Some(initial) = self.initial_focus.as_ref() {
+                        initial.focus(window, cx);
+                    }
                 } else if let Some(previous) = state.previous.take()
                     && state.handle.contains_focused(window, cx)
                 {

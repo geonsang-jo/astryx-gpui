@@ -1,8 +1,8 @@
 # Full native catalogue port
 
-The user approved continuing through the original Astryx catalogue and consuming
-this library from Herdr. The source inventory is pinned, with 102 UI families
-and 11 infrastructure/support exports tracked in [coverage](coverage.md).
+This port covers the original Astryx catalogue for native GPUI hosts. The source
+inventory is pinned, with 102 UI families and 11 infrastructure/support export
+groups tracked in [coverage](coverage.md).
 
 ## Contracts
 
@@ -13,7 +13,7 @@ and 11 infrastructure/support exports tracked in [coverage](coverage.md).
 - Aliases, inert placeholders and README promises do not count as completed ports.
 - Platform adapters may leave file dialogs, URL navigation, provider/network work,
   persistence and app-global focus policy to explicit caller callbacks.
-- Every UI uses the same explicit Theme; stable IDs and native disabled behavior
+- Themed surfaces/controls use explicit Theme; stable IDs and native disabled behavior
   are part of interactive controls. No business I/O starts while rendering.
 - Public manifests remain reproducible and independent of Herdr. Native MIT
   code retains the full Meta notice and clearly identifies the unofficial port.
@@ -22,12 +22,12 @@ and 11 infrastructure/support exports tracked in [coverage](coverage.md).
 
 - [x] Existing theme and eight native component families, public bootstrap.
 - [x] Input/TextArea/Select, Dialog/Popover/Tooltip, Switch and status primitives.
-- [ ] Form groups, radio/slider/calendar/date/time/number/file controls and selectors.
-- [ ] Modal variants, menus, hover content, notifications, command/search layers.
-- [ ] Layout/app/navigation shells, media, lists, tables and text/chat content.
-- [ ] Stateful geometry/collections, pagination, resizable/scroll and overflow.
-- [ ] Verify the complete source inventory has a concrete native mapping and tests.
-- [ ] Publish final audited code and verify the host's exact dependency revision.
+- [x] Form groups, radio/slider/calendar/date/time/number/file controls and selectors.
+- [x] Modal variants, menus, hover content, notifications, command/search layers.
+- [x] Layout/app/navigation shells, media, lists, tables and text/chat content.
+- [x] Stateful geometry/collections, pagination, resizable/scroll and overflow.
+- [x] Verify the complete source inventory has a concrete native mapping and tests.
+- [x] Publish final audited code with reproducible native host pin guidance.
 
 ## Verification and release
 

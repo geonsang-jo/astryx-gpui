@@ -37,7 +37,8 @@ SOFTWARE.
 
 The public library uses `gpui-pre 0.3.8` and `gpui-base 0.7.1`, licensed
 Apache-2.0. Their original notices are retained in their distributed crates.
-This project does not vendor or modify those dependencies. Consumers who
+This project does not vendor or modify those dependencies.
+`chrono` supplies date/time values and formatting under its MIT OR Apache-2.0 license; its distributed crate retains its notices. Consumers who
 redistribute a binary must include the required dependency licenses/notices
 for their resolved dependency graph; Cargo.lock records the gallery's graph.
 

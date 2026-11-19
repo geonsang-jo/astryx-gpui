@@ -1,5 +1,9 @@
 # Upstream source map
 
+The table below records the original token/primitives slice. The complete
+102-family source-to-native mapping and current contracts are maintained in
+[coverage](coverage.md).
+
 All Astryx links below refer to the same reviewed commit:
 `f4fa3661a25403ded7ee4c4c2ac5c2a355eb74ef`.
 
@@ -16,9 +20,10 @@ All Astryx links below refer to the same reviewed commit:
 | Collapsible | [Collapsible.tsx](https://github.com/meta/astryx/blob/f4fa3661a25403ded7ee4c4c2ac5c2a355eb74ef/packages/core/src/Collapsible/Collapsible.tsx) | Controlled disclosure; hidden content is not laid out |
 
 The Rust API and behavior are native adaptations, not copied React internals.
-The first slice omits animation, React polymorphism, rich content slots,
-indeterminate checkbox state, vertical tabs, overflow menus, panels and advanced
-accessibility relationships. Host applications compose their own tab content.
+The original slice omitted animation and advanced collections; later native
+families now provide those core purposes. React polymorphism, all source variants,
+indeterminate checkbox state, vertical Tabs and advanced accessibility relationships
+remain outside the initial primitive contract. Host applications compose tab panels.
 No trademark graphics, custom font files or icon library assets were copied.
 
 The source license and copyright notice are reproduced in

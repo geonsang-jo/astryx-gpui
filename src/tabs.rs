@@ -227,7 +227,13 @@ impl RenderOnce for Tabs {
                         }
                     })
                     .when_some(item.icon_svg.clone(), |button, icon| {
-                        button.child(gpui::svg().data(icon.as_bytes()).size(px(14.)).flex_none())
+                        button.child(
+                            gpui::svg()
+                                .data(icon.as_bytes())
+                                .size(px(14.))
+                                .flex_none()
+                                .text_color(if selected { c.text } else { c.muted }),
+                        )
                     })
                     .child(item.label.clone())
             })

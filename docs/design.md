@@ -1,9 +1,9 @@
-# Initial native port
+# Native port design
 
-The initial scope is a small independent Rust library for the primitives used
-by Herdr: Text, Button, Card, Badge, Divider, Checkbox, Tabs and Collapsible,
-with explicit light/dark themes. Input, Select, Dialog, Popover and rich chat
-editing remain future slices; the project does not claim a complete Astryx API.
+The first slice supplied eight primitives and explicit light/dark themes.
+The expanded library now maps all 102 public UI families in the pinned Astryx
+source to concrete native counterparts. [Coverage](coverage.md) records the
+contract and adaptation for every family; React API/prop parity is not claimed.
 
 The visual reference is Meta Astryx commit
 `f4fa3661a25403ded7ee4c4c2ac5c2a355eb74ef`. Tokens and source measurements are
@@ -15,14 +15,15 @@ target. `gpui-base 0.7.1` supplies unstyled behavior primitives where appropriat
 This avoids copying Herdr's private GPUI patches and avoids reimplementing input
 activation, stable keyed focus and disabled controls.
 
-Every interactive component is controlled by the owning view. It receives its
-state and reports the desired next state through a callback. Theme values are
-explicit and copyable; no application-global theme or hidden component state is
-introduced. Component-specific builders can refine styles without bypassing
+Interactive values are controlled by the owning view or retained in an explicit
+caller-owned native model. Callbacks request application changes; native model
+subscriptions notify the owner when it should redraw. Popup/focus lifecycles
+may retain keyed native view state, without owning application persistence. Theme values are
+explicit and copyable; no application-global theme is introduced. Component-specific builders can refine styles without bypassing
 disabled behavior. Library initialization is the existing gpui-base initializer;
 host focus traversal bindings belong to the host, not to the library.
 
-The native gallery demonstrates both themes, each component and real controlled
+Representative native galleries demonstrate both themes and real controlled
 interactions. Native tests cover activation, disabled suppression, owner state
 and disclosure. A genuine headless GPU capture provides visual evidence.
 

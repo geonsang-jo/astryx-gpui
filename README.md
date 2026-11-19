@@ -8,40 +8,46 @@ An **unofficial community port** of [Meta's Astryx](https://github.com/meta/astr
 
 ## Native coverage
 
-| Component | Available behavior |
+All **102 public UI families** in the pinned Astryx catalogue now have working
+native counterparts. [Coverage](docs/coverage.md) lists each source family,
+public Rust API, supported behavior and native adaptations. This means coverage
+of each family's core purpose, not every React prop/variant or pixel parity.
+The 11 supporting source export groups are documented separately.
+
+| Area | Native capabilities |
 | --- | --- |
-| Theme | Explicit light/dark semantic tokens; caller can customize `Theme.colors` |
-| Text | Body, supporting and heading typography |
-| Button | Primary, secondary, outline and ghost; three sizes; native keyboard and disabled behavior |
-| Card | Composable children and caller styling |
-| Badge | Neutral, success, warning, danger and info |
-| Divider | Horizontal semantic color separator |
-| Checkbox | Caller-owned checked state and change callback |
-| Tabs | Caller-owned selection; roving focus; Left/Right/Home/End; disabled items |
-| Collapsible | Caller-owned open state; pointer and keyboard trigger |
-| Input / TextArea | Caller-owned native editing state; selection, history, Korean text and read-only/disabled behavior |
-| Select | Controlled value/open/highlight; native anchored popup; disabled skipping; confirmation and focus restoration |
-| Dialog | Controlled modal; focus trap/restore; Escape/backdrop veto; child buttons retain their own Enter action |
-| Popover / Tooltip | Native anchored/hover lifecycles with Neutral surfaces |
-| Switch | Controlled binary value; native pointer/keyboard and disabled behavior |
-| Banner / EmptyState | Composable status and empty-result content |
-| ProgressBar / StatusDot | Numeric native progress semantics and labelled status |
-| Skeleton / Kbd | Loading placeholder and shortcut presentation |
+| Foundations and layout | Explicit light/dark Theme, text, cards, stacks, grid, aspect ratio, sections, application shell and layout slots |
+| Forms | Native text/IME/history, selectors, token editing, checkbox/radio/switch/slider, calendar/date/time/number and OS file selection |
+| Navigation | Tabs, toolbars, breadcrumbs, controlled top/side/mobile navigation, pagination and stepper |
+| Layers and search | Focus-managed dialogs, drawers/sheets, menus, popovers, hover help, alerts, lightbox, command palette and sectioned search |
+| Collections and geometry | Selectable/reorderable lists, native table and virtual tree, carousel, swipe, snapping, resizing, scrolling and overflow |
+| Content and feedback | Native Markdown/code clipboard, controlled chat, citations, media fallbacks, timers, toast/progress/loading/status |
 
-Porting the full source catalogue is ongoing. [The coverage inventory](docs/coverage.md)
-tracks all 102 public UI families separately from 11 supporting exports; pending
-families are not public stubs. Native counterparts adapt platform behavior rather
-than claiming React API compatibility. The library remains independent of its hosts.
-
-The forms/layers gallery demonstrates the additional controls:
+Representative native galleries use live retained state and callbacks:
 
 ```sh
 cargo run --locked --example controls
-cargo run --locked --example controls -- --dark
-cargo run --locked --example controls -- --dialog --snapshot artifacts/dialog.png
+cargo run --locked --example forms
+cargo run --locked --example forms -- --navigation
+cargo run --locked --example layers
+cargo run --locked --example layers -- --dialog
+cargo run --locked --example content
+cargo run --locked --example geometry
 ```
 
-![Native controls](docs/assets/controls-light.png)
+Each accepts `--dark` and `--snapshot PATH`. The source examples show which
+models the owning view observes and which data or navigation callbacks it owns.
+
+![Native form gallery](docs/assets/forms-light.png)
+
+[Forms dark](docs/assets/forms-dark.png) ·
+[Layers light](docs/assets/layers-light.png) ·
+[Layers dark](docs/assets/layers-dark.png) ·
+[Alert dialog](docs/assets/layers-dialog.png) ·
+[Content light](docs/assets/content-light.png) ·
+[Content dark](docs/assets/content-dark.png) ·
+[Geometry light](docs/assets/geometry-light.png) ·
+[Geometry dark](docs/assets/geometry-dark.png)
 
 ## Run the native gallery
 
@@ -110,9 +116,9 @@ Card::new()
     )
 ```
 
-Use stable, distinct control IDs in the owning window. Checkbox, Tabs and Collapsible request changes through callbacks; the host updates its value and calls `cx.notify()`. Rebuilding a component does not own or persist application state. Components implement GPUI `Styled`; caller refinements apply after their defaults. Containers implement `ParentElement`.
+Use stable, distinct control IDs in the owning window. Checkbox, Tabs and Collapsible request changes through callbacks; the host updates its value and calls `cx.notify()`. Rebuilding a component does not own or persist application state. Most presentation controls implement GPUI `Styled`; caller refinements apply after their defaults. Composable containers implement `ParentElement`; stateful collections use typed row/item builders.
 
-The host owns page layout, fonts, focus traversal policy and persistence. Components use inherited/system fonts; no Meta logo, font or icon asset is bundled.
+The host owns data, provider/network operations, URL routing, fonts, focus traversal policy and persistence. Native file selection returns paths without reading or uploading their contents. Chat provides editing and callbacks without starting an AI provider. Some native models require the owning view to observe them for redraw, as demonstrated in the galleries. Components use inherited/system fonts; no Meta logo, font or icon asset is bundled.
 
 ## Verification
 
@@ -129,6 +135,6 @@ See [verification evidence](docs/verification.md), [design scope](docs/design.md
 
 ## Design provenance and license
 
-The first slice follows Astryx's Neutral theme at commit `f4fa3661a25403ded7ee4c4c2ac5c2a355eb74ef`: neutral/status colors, 4px spacing scale, 12px cards, 10px buttons, and 14/20, 12/20, 17/24 typography. Native controls adapt React interactions to GPUI; exact pixel parity with the full upstream system is not claimed.
+The port follows Astryx's Neutral theme at commit `f4fa3661a25403ded7ee4c4c2ac5c2a355eb74ef`: neutral/status colors, 4px spacing scale, 12px cards, 10px buttons, and 14/20, 12/20, 17/24 typography. Native controls adapt React interactions to GPUI; exact pixel parity with the full upstream system is not claimed.
 
 Original Rust work is [MIT licensed](LICENSE). The complete Meta MIT notice and dependency license guidance are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
